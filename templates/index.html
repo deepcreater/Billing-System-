@@ -1,0 +1,82 @@
+<!-- templates/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Billing App</title>
+    <style>
+    body {
+        background: linear-gradient(to right, #f8f9fa, #e3f2fd);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .product-card {
+        cursor: pointer;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .product-card:hover {
+        background-color: #e9f5ff;
+        transform: scale(1.02);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    .selected-item {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+    }
+
+    .card-header {
+        border-radius: 10px 10px 0 0;
+    }
+
+    .card {
+        border-radius: 15px;
+    }
+
+    .btn {
+        border-radius: 20px;
+    }
+
+    .invoice-preview {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    #grandTotal {
+        font-size: 1.3rem;
+        font-weight: 600;
+        animation: glow 1.5s infinite;
+    }
+
+    @keyframes glow {
+        0% { text-shadow: 0 0 5px #28a745; }
+        50% { text-shadow: 0 0 15px #28a745; }
+        100% { text-shadow: 0 0 5px #28a745; }
+    }
+
+    .modal-content {
+        border-radius: 15px;
+    }
+</style>
+
+</head>
+<body>
+    <div class="login-box">
+        <h2>Login</h2>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="flash">{{ messages[0] }}</div>
+          {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <input type="text" name="username" placeholder="Enter Username" required><br>
+            <input type="password" name="password" placeholder="Enter Password" required><br>
+            <input type="submit" value="Login">
+        </form>
+    </div>
+</body>
+</html>

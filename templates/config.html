@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Billing System - Pizza Catalog</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #4B0082, #008080);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .catalog-container {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        .catalog-box, .bill-box {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 2rem;
+            flex: 1;
+            min-width: 300px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            position: relative;
+            overflow: hidden;
+        }
+        .catalog-box::before, .bill-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 20px;
+            padding: 2px;
+            background: linear-gradient(135deg, #4B0082, #008080);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            z-index: -1;
+        }
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .table th, .table td {
+            vertical-align: middle;
+        }
+        .btn {
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #008080, #2DD4BF);
+            border: none;
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #F59E0B, #D97706);
+            border: none;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #DC2626, #B91C1C);
+            border: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4B0082, #008080);
+            border: none;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .form-control {
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            border-color: #008080;
+            box-shadow: 0 0 10px rgba(0, 128, 128, 0.3);
+        }
+        .category-card {
+            cursor: pointer;
+            background: #F1F5F9;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+        .category-card:hover {
+            background: #E0F2FE;
+            transform: translateY(-5px);
+        }
+        #pizza-list, #item-form {
+            margin-top: 1rem;
+        }
+        .logo-header {
+            max-width: 100px;
+            border-radius: 10px;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1055;
+        }
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .modal-header {
+            background: linear-gradient(135deg, #4B0082, #008080);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container-fluid">
+            {% if config.get('logo_path') %}
+                <img src="{{ url_for('static', filename=config.get('logo_path')) }}" alt="Shop Logo" class="logo-header me-3">
+            {% endif %}
+            <a class="navbar-brand" href="#">{{ config.get('shop_name', 'Pizza Billing System') }}</a>
+            <div class="ms-auto">
+                <a href="{{ url_for('config') }}" class="btn btn-secondary me-2"><i class="fas fa-cog me-2"></i>Config</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <div id="toast-container" class="toast-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="toast align-items-center text-bg-{{ 'success' if category == 'success' else 'danger' }} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="d-flex">
+                                <div class="toast-body">{{ message }}</div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+        <div class="catalog-container animate__animated animate__fadeIn">
+            <div class="catalog-box">
+                <h2 class="mb-4"><i class="fas fa-pizza-slice me-2"></i>Billing Catalog</h2>
+                <div class="category-card animate__animated animate__pulse" onclick="showPizzaList()">
+                    <h4><i class="fas fa-chevron-down me-2"></i>Pizza Menu</h4>
+                </div>
+                <div id="item-form">
+                    <h5><i class="fas fa-plus-circle me-2"></i>Add New Item</h5>
+                    <form id="add-item-form">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Item Name</label>
+                                <input type="text" id="item-name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Price (₹)</label>
+                                <input type="number" id="item-price" class="form-control" step="0.01" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Add Item</button>
+                    </form>
+                </div>
+                <div id="pizza-list">
+                    <table class="table table-hover" id="catalog-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in catalog['Pizza'] %}
+                                <tr data-item-id="{{ item._id }}" class="animate__animated animate__fadeInUp">
+                                    <td>{{ item.name }}</td>
+                                    <td>₹{{ item.price | round(2) }}</td>
+                                    <td>
+                                        <input type="number" class="quantity-input form-control w-50" min="1" value="1">
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm add-btn"><i class="fas fa-cart-plus me-1"></i>Add</button>
+                                        <button class="btn btn-warning btn-sm edit-btn" data-bs-toggle="modal" data-bs-target="#editModal" data-id="{{ item._id }}" data-name="{{ item.name }}" data-price="{{ item.price }}"><i class="fas fa-edit me-1"></i>Edit</button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="bill-box">
+                <h3 class="mb-4"><i class="fas fa-receipt me-2"></i>Current Bill</h3>
+                {% if cart %}
+                    <table class="table" id="bill-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Qty</th>
+                                <th>Total</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in cart %}
+                                <tr class="animate__animated animate__fadeInRight">
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>₹{{ item.total | round(2) }}</td>
+                                    <td>
+                                        <form class="delete-form" data-index="{{ loop.index0 }}">
+                                            <input type="hidden" name="index" value="{{ loop.index0 }}">
+                                            <button type="submit" class="btn btn-danger btn-sm delete-btn"><i class="fas fa-trash me-1"></i>Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <p class="fw-bold"><i class="fas fa-money-bill-wave me-2"></i>Grand Total: <span id="grand-total">₹{{ (cart | sum(attribute='total')) | round(2) }}</span></p>
+                    <form method="POST" action="{{ url_for('generate_bill') }}">
+                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-file-pdf me-2"></i>Generate Bill</button>
+                    </form>
+                {% else %}
+                    <p class="text-muted"><i class="fas fa-info-circle me-2"></i>No items in bill yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel"><i class="fas fa-edit me-2"></i>Edit Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-item-form">
+                        <input type="hidden" id="edit-item-id">
+                        <div class="mb-3">
+                            <label class="form-label">Item Name</label>
+                            <input type="text" id="edit-item-name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Price (₹)</label>
+                            <input type="number" id="edit-item-price" class="form-control" step="0.01" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-save me-2"></i>Save Changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showPizzaList() {
+            document.getElementById("pizza-list").style.display = "block";
+        }
+
+        function showToast(message, type = 'success') {
+            const toastHtml = `
+                <div class="toast align-items-center text-bg-${type} border-0 animate__animated animate__fadeInRight" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>`;
+            $('#toast-container').append(toastHtml);
+            $('.toast').toast({ delay: 3000 }).toast('show');
+        }
+
+        // Add item to catalog
+        $("#add-item-form").submit(function(e) {
+            e.preventDefault();
+            const name = $("#item-name").val();
+            const price = $("#item-price").val();
+            $.ajax({
+                url: "{{ url_for('add_item') }}",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ name, price }),
+                success: function(response) {
+                    const item = response.item;
+                    $("#catalog-table tbody").append(`
+                        <tr data-item-id="${item._id}" class="animate__animated animate__fadeInUp">
+                            <td>${item.name}</td>
+                            <td>₹${item.price}</td>
+                            <td><input type="number" class="quantity-input form-control w-50" min="1" value="1"></td>
+                            <td>
+                                <button class="btn btn-success btn-sm add-btn"><i class="fas fa-cart-plus me-1"></i>Add</button>
+                                <button class="btn btn-warning btn-sm edit-btn" data-bs-toggle="modal" data-bs-target="#editModal" data-id="${item._id}" data-name="${item.name}" data-price="${item.price}"><i class="fas fa-edit me-1"></i>Edit</button>
+                            </td>
+                        </tr>
+                    `);
+                    $("#item-name").val("");
+                    $("#item-price").val("");
+                    showToast(response.message);
+                },
+                error: function(xhr) {
+                    showToast(xhr.responseJSON.error, 'danger');
+                }
+            });
+        });
+
+        // Add item to bill
+        $(document).on("click", ".add-btn", function() {
+            const row = $(this).closest("tr");
+            const name = row.find("td:eq(0)").text();
+            const price = parseFloat(row.find("td:eq(1)").text().replace("₹", ""));
+            const quantity = parseInt(row.find(".quantity-input").val());
+            const total = price * quantity;
+            $.ajax({
+                url: "{{ url_for('catalog') }}",
+                method: "POST",
+                data: { item_name: name, price: price, quantity: quantity },
+                success: function(response) {
+                    const index = $("#bill-table tbody tr").length;
+                    $("#bill-table tbody").append(`
+                        <tr class="animate__animated animate__fadeInRight">
+                            <td>${name}</td>
+                            <td>${quantity}</td>
+                            <td>₹${total.toFixed(2)}</td>
+                            <td>
+                                <form class="delete-form" data-index="${index}">
+                                    <input type="hidden" name="index" value="${index}">
+                                    <button type="submit" class="btn btn-danger btn-sm delete-btn"><i class="fas fa-trash me-1"></i>Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    `);
+                    const grandTotal = parseFloat($("#bill-table tbody tr").get().reduce((sum, row) => {
+                        return sum + parseFloat($(row).find("td:eq(2)").text().replace("₹", ""));
+                    }, 0)).toFixed(2);
+                    $("#grand-total").text(`₹${grandTotal}`);
+                    $("#bill-table").siblings("p:contains('No items')").remove();
+                    showToast(response.message);
+                },
+                error: function(xhr) {
+                    showToast("Error adding item to bill.", 'danger');
+                }
+            });
+        });
+
+        // Delete item from bill
+        $(document).on("submit", ".delete-form", function(e) {
+            e.preventDefault();
+            const form = $(this);
+            const index = form.data("index");
+            $.ajax({
+                url: "{{ url_for('delete_item') }}",
+                method: "POST",
+                data: { index: index },
+                success: function(response) {
+                    form.closest("tr").remove();
+                    const grandTotal = $("#bill-table tbody tr").length ? parseFloat($("#bill-table tbody tr").get().reduce((sum, row) => {
+                        return sum + parseFloat($(row).find("td:eq(2)").text().replace("₹", ""));
+                    }, 0)).toFixed(2) : "0.00";
+                    $("#grand-total").text(`₹${grandTotal}`);
+                    if (!$("#bill-table tbody tr").length) {
+                        $("#bill-table").after('<p class="text-muted"><i class="fas fa-info-circle me-2"></i>No items in bill yet.</p>');
+                    }
+                    showToast(response.message);
+                },
+                error: function(xhr) {
+                    showToast(xhr.responseJSON.error, 'danger');
+                }
+            });
+        });
+
+        // Populate edit modal
+        $(document).on("click", ".edit-btn", function() {
+            const id = $(this).data("id");
+            const name = $(this).data("name");
+            const price = $(this).data("price");
+            $("#edit-item-id").val(id);
+            $("#edit-item-name").val(name);
+            $("#edit-item-price").val(price);
+        });
+
+        // Edit item
+        $("#edit-item-form").submit(function(e) {
+            e.preventDefault();
+            const id = $("#edit-item-id").val();
+            const name = $("#edit-item-name").val();
+            const price = $("#edit-item-price").val();
+            $.ajax({
+                url: `/edit_item/${id}`,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ name, price }),
+                success: function(response) {
+                    const row = $(`tr[data-item-id="${id}"]`);
+                    row.find("td:eq(0)").text(response.item.name);
+                    row.find("td:eq(1)").text(`₹${response.item.price}`);
+                    row.find(".edit-btn").data("name", response.item.name).data("price", response.item.price);
+                    $("#editModal").modal('hide');
+                    showToast(response.message);
+                },
+                error: function(xhr) {
+                    showToast(xhr.responseJSON.error, 'danger');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
